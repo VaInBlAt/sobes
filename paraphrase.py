@@ -45,3 +45,9 @@ def compare_texts_paraphrase(text1, text2):
         )
     
     return similarity.item()
+
+def compare_as_row_paraphrase(row):
+    return compare_texts_paraphrase(row["correct_answer"], row["answer1"])
+
+def is_good_answer_paraphrase(row, threshold: float) -> bool:
+    return row["compare_paraphrase"] > threshold

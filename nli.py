@@ -32,3 +32,22 @@ def compare_texts_nli(text1, text2):
         proba = torch.softmax(outputs.logits, -1).cpu().numpy()[0]
     
     return proba[0]
+
+def compare_as_row_nli(row):
+    return compare_texts_nli(row["correct_answer"], row["answer1"])
+
+def is_good_answer_nli(row, threshold: float) -> bool:
+    return row["compare_nli"] > threshold
+
+
+
+def compare_texts_nli_full(text1, text2):
+    batch = tokenizer(text1, text2, return_tensors='pt')
+    if torch.cuda.is_available():
+        batch = {k: v.cuda() for k, v in batch.items()}
+    
+    with torch.no_grad():
+        outputs = model(**batch)
+        proba = torch.softmax(outputs.logits, -1).cpu().numpy()[0]
+    
+    return proba
