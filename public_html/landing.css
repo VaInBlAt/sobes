@@ -1,0 +1,210 @@
+/* ===== Стили лендинга (index.html). Подключается ПОСЛЕ style.css ===== */
+
+body.lp {
+  overflow-x: hidden;
+}
+
+/* ---------- Первый экран ---------- */
+.lp-hero {
+  min-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 20px 24px;
+  background: radial-gradient(ellipse at 50% 38%, rgba(47, 181, 168, 0.22), rgba(0, 0, 0, 0) 65%);
+}
+
+.lp-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #0f7a5c;
+  background: linear-gradient(100deg, #0f7a5c 10%, #2fb585 50%, #c98a12 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: lp-rise 1.1s ease-out both;
+}
+
+.lp-tag {
+  margin: 18px 0 0;
+  max-width: 460px;
+  font-size: 18px;
+  color: var(--muted);
+  animation: lp-rise 1.1s ease-out 0.25s both;
+}
+
+.lp-scroll {
+  margin-top: 40px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---------- Звуковая волна ---------- */
+.lp-wave {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 56px;
+  margin-top: 34px;
+  animation: lp-rise 1.1s ease-out 0.45s both;
+}
+
+.lp-wave i {
+  display: block;
+  width: 6px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transform: scaleY(0.2);
+  animation: lp-bar 1.4s ease-in-out infinite;
+}
+
+.lp-wave i:nth-child(even) { background: var(--warm); }
+.lp-wave i:nth-child(1)  { animation-delay: -1.3s; }
+.lp-wave i:nth-child(2)  { animation-delay: -1.1s; }
+.lp-wave i:nth-child(3)  { animation-delay: -0.9s; }
+.lp-wave i:nth-child(4)  { animation-delay: -0.7s; }
+.lp-wave i:nth-child(5)  { animation-delay: -0.5s; }
+.lp-wave i:nth-child(6)  { animation-delay: -0.3s; }
+.lp-wave i:nth-child(7)  { animation-delay: -0.6s; }
+.lp-wave i:nth-child(8)  { animation-delay: -0.2s; }
+.lp-wave i:nth-child(9)  { animation-delay: -0.8s; }
+.lp-wave i:nth-child(10) { animation-delay: -0.4s; }
+.lp-wave i:nth-child(11) { animation-delay: -1.0s; }
+
+@keyframes lp-bar {
+  0%, 100% { transform: scaleY(0.2); }
+  50%      { transform: scaleY(1); }
+}
+
+@keyframes lp-rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Блоки текста ---------- */
+.lp-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.lp-block {
+  position: relative;
+  margin: 0 0 28px;
+  padding: 34px 38px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 40, 45, 0.1);
+}
+
+.lp-block h2 {
+  margin: 0 0 0.5em;
+  font-size: 26px;
+}
+
+.lp-block p {
+  margin: 0;
+  max-width: 680px;
+  font-size: 17px;
+}
+
+.lp-block.accent { border-left: 6px solid var(--accent); }
+.lp-block.warm   { border-left: 6px solid var(--warm); }
+
+.lp-block.goal {
+  background: linear-gradient(135deg, #0f7a5c, #0a5a43);
+  border-color: transparent;
+  color: #ffffff;
+}
+.lp-block.goal h2 { color: #ffffff; }
+.lp-block.goal p  { font-size: 19px; }
+
+/* ---------- Список задач ---------- */
+.lp-tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lp-tasks li {
+  position: relative;
+  margin: 0 0 12px;
+  padding: 14px 16px 14px 48px;
+  background: var(--bg);
+  border-radius: 10px;
+}
+
+.lp-tasks li::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: var(--warm);
+}
+
+/* ---------- Кнопка ---------- */
+.lp-cta {
+  text-align: center;
+  padding: 24px 20px 90px;
+}
+
+.lp-cta .btn {
+  display: inline-block;
+  width: auto;
+  padding: 20px 48px;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(15, 122, 92, 0.4);
+}
+
+/* ---------- Появление блоков при прокрутке ---------- */
+.js .rv {
+  opacity: 0;
+  transform: translateX(-120px);
+  transition: opacity 0.9s ease-out, transform 0.9s ease-out;
+}
+.js .rv.from-r { transform: translateX(120px); }
+.js .rv.in     { opacity: 1; transform: none; }
+
+/* ---------- Большие экраны ---------- */
+@media (min-width: 700px) {
+  .lp-title { font-size: 96px; }
+  .lp-tag   { font-size: 21px; }
+}
+@media (min-width: 1100px) {
+  .lp-title { font-size: 136px; }
+}
+
+/* ---------- Телефоны ---------- */
+@media (max-width: 600px) {
+  .lp-block { padding: 24px 22px; }
+  .js .rv,
+  .js .rv.from-r { transform: translateY(40px); }
+  .js .rv.in { transform: none; }
+}
+
+/* ---------- Тёмная тема ---------- */
+@media (prefers-color-scheme: dark) {
+  .lp-title { color: #34b88a; }
+  .lp-cta .btn { box-shadow: 0 12px 30px rgba(52, 184, 138, 0.35); }
+}
+
+/* ---------- Без анимации, если так настроено в системе ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .lp-title, .lp-tag, .lp-wave { animation: none; }
+  .lp-wave i { animation: none; transform: scaleY(0.6); }
+  .js .rv, .js .rv.from-r { opacity: 1; transform: none; transition: none; }
+}

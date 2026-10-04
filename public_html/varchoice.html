@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Выбор варианта</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><a href="index.html">🏠 На главную</a><span class="sp"></span><a href="role.html">← Назад</a></header>
+<main class="stage"><div class="card">
+<h2>Выберите режим работы</h2>
+<a class="btn" href="#" id="rnd">Случайный вариант</a>
+<a class="btn alt" href="numofvar.html">Выбрать вариант</a>
+</div></main>
+<script>
+document.getElementById('rnd').addEventListener('click',function(e){
+  e.preventDefault();
+  location.href='choosetask.html?v='+(Math.floor(Math.random()*8)+1);
+});
+</script>
+</body></html>

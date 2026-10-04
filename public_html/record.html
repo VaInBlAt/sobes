@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Беседа по тексту</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .blk{margin-top:16px;text-align:left}
+  .blk .lbl{display:block;font:600 .85rem/1.4 "Segoe UI",system-ui,sans-serif;color:var(--muted);margin-bottom:4px}
+  .blk.user{border-left-color:var(--ok)}
+  .blk.ref{border-left-color:var(--mid)}
+  .fold{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .6s cubic-bezier(.2,.8,.2,1),opacity .5s ease-out,margin .6s cubic-bezier(.2,.8,.2,1)}
+  .fold>div{overflow:hidden;min-height:0}
+  .fold.closed{grid-template-rows:0fr;opacity:0;margin-bottom:-12px}
+  .toggle{display:inline-flex;align-items:center;gap:8px;width:auto;margin:14px 0 0;padding:9px 16px;font-size:.95rem}
+  .toggle .ic{display:inline-block;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  .toggle.closed .ic{transform:rotate(180deg)}
+  @media(prefers-reduced-motion:reduce){.fold,.toggle .ic{transition:none}}
+  .card.wide{overflow:hidden}
+  .swap{transition:transform .5s cubic-bezier(.5,0,.75,0),opacity .45s ease-in}
+  .swap.leave{transform:translateX(-90px);opacity:0}
+  .swap.pre{transition:none;transform:translateX(90px);opacity:0}
+  .swap.enter{transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .5s ease-out}
+  .btn:disabled,.btn:disabled:hover,.btn:disabled:focus-visible{background:var(--bg);color:var(--muted);border:1px solid var(--line);cursor:not-allowed;transform:none;filter:none}
+  @media(prefers-reduced-motion:reduce){.swap,.swap.enter{transition:none}}
+  .progress{color:var(--muted);font-size:.9rem;margin:0 0 10px}
+</style>
+</head>
+<body>
+<header class="topbar"><a href="index.html">🏠 На главную</a></header>
+<main class="stage"><div class="card wide">
+<h3>Беседа по тексту</h3>
+<div class="swap">
+<p class="progress" id="progress"></p>
+<div class="fold" id="fold"><div><div class="passage" id="passage"></div></div></div>
+<div class="fold closed" id="qfold"><div><div class="q" id="question" style="margin-top:12px"></div></div></div>
+<button class="btn ghost toggle" id="toggle" type="button" aria-expanded="true" aria-controls="fold"><span class="ic">▲</span><span id="toggleTxt">Скрыть текст задания</span></button>
+</div>
+
+<p class="sub" id="status" style="margin-top:18px">Загружаю вопросы…</p>
+<button class="btn" id="rec" disabled>🎤 Начать запись</button>
+
+<div class="swap">
+<div class="passage blk user" id="out" hidden><span class="lbl">Ваш ответ</span><span id="outText"></span></div>
+<div class="passage blk ref" id="ref" hidden><span class="lbl">Эталонный ответ</span><span id="refText"></span></div>
+<div class="hint" id="cmp" hidden style="text-align:left"></div>
+</div>
+<button class="btn alt" id="next" hidden>Продолжить →</button>
+</div></main>
+
+<script>
+// Адрес сервера Flask. Если страница открыта через Flask (порт 5000),
+// используем тот же адрес, иначе обращаемся к локальному серверу напрямую.
+var API = (location.port === '5000') ? '' : 'http://127.0.0.1:5000';
+
+var btn = document.getElementById('rec');
+// ВАЖНО: statusEl, а не status — window.status это встроенное свойство браузера
+var statusEl = document.getElementById('status');
+var out = document.getElementById('out');
+var outText = document.getElementById('outText');
+var ref = document.getElementById('ref');
+var refText = document.getElementById('refText');
+var cmp = document.getElementById('cmp');
+var nextBtn = document.getElementById('next');
+var fold = document.getElementById('fold');
+var toggle = document.getElementById('toggle');
+var toggleTxt = document.getElementById('toggleTxt');
+var qfold = document.getElementById('qfold');
+var recorder, chunks = [];
+
+function setFolded(folded) {
+  fold.classList.toggle('closed', folded);
+  toggle.classList.toggle('closed', folded);
+  qfold.classList.toggle('closed', !folded);      // вопрос показывается, когда текст скрыт
+  toggle.setAttribute('aria-expanded', String(!folded));
+  toggleTxt.textContent = folded ? 'Показать текст задания' : 'Скрыть текст задания';
+}
+toggle.addEventListener('click', function () {
+  setFolded(!fold.classList.contains('closed'));
+});
+
+var questions = [];   // приходят с сервера (/questions)
+var idx = 0;          // текущий вопрос; после последнего — снова первый
+
+function current() { return questions[idx]; }
+
+function render() {
+  var q = current();
+  document.getElementById('progress').textContent = 'Вопрос ' + (idx + 1) + ' из ' + questions.length;
+  document.getElementById('passage').textContent = q.passage;
+  document.getElementById('question').textContent = q.question;
+  setFolded(false);   // новый вопрос: виден текст, вопрос скрыт
+  out.hidden = ref.hidden = cmp.hidden = nextBtn.hidden = true;
+  btn.hidden = false;
+  btn.disabled = false;
+  btn.classList.remove('alt');
+  btn.textContent = '🎤 Начать запись';
+  statusEl.textContent = 'Нажмите кнопку и говорите';
+}
+
+async function loadQuestions() {
+  try {
+    var res = await fetch(API + '/questions');
+    questions = await res.json();
+    if (!questions.length) throw new Error('список вопросов пуст');
+    render();
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Не удалось загрузить вопросы: ' + e.message +
+      '. Откройте страницу через http://127.0.0.1:5000/record.html';
+  }
+}
+
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Текст задания «уплывает» влево, затем новое задание выплывает справа
+nextBtn.addEventListener('click', function () {
+  function go() { idx = (idx + 1) % questions.length; render(); }
+  if (reduceMotion) { go(); return; }
+  var els = document.querySelectorAll('.swap');
+  nextBtn.disabled = true;
+  els.forEach(function (el) { el.classList.add('leave'); });
+  setTimeout(function () {
+    go();
+    nextBtn.disabled = false;
+    els.forEach(function (el) { el.classList.remove('leave'); el.classList.add('pre'); });
+    void document.body.offsetWidth;   // фиксируем стартовую позицию справа
+    els.forEach(function (el) { el.classList.remove('pre'); el.classList.add('enter'); });
+    setTimeout(function () { els.forEach(function (el) { el.classList.remove('enter'); }); }, 600);
+  }, 500);
+});
+
+btn.addEventListener('click', async function () {
+  // второй клик — остановить запись
+  if (recorder && recorder.state === 'recording') {
+    recorder.stop();
+    return;
+  }
+
+  var stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    statusEl.textContent = 'Нет доступа к микрофону';
+    return;
+  }
+
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+
+  recorder.onstop = async function () {
+    stream.getTracks().forEach(function (t) { t.stop(); });
+    btn.disabled = true;
+    btn.classList.remove('alt');
+    btn.textContent = '🎤 Начать запись';
+    statusEl.textContent = 'Распознаю… первый раз может занять до минуты';
+
+    var form = new FormData();
+    form.append('audio', new Blob(chunks, { type: recorder.mimeType }), 'record.webm');
+
+    try {
+      var res = await fetch(API + '/transcribe', { method: 'POST', body: form });
+      var raw = await res.text();
+      var data;
+      try {
+        data = JSON.parse(raw);
+      } catch (e) {
+        throw new Error('сервер вернул не JSON (HTTP ' + res.status + '). Откройте страницу через http://127.0.0.1:5000/record.html');
+      }
+      if (data.error) throw new Error(data.error);
+
+      // текст ответа показываем сразу после расшифровки
+      outText.textContent = data.text || '(речь не распознана)';
+      out.hidden = false;
+
+      if (data.text) {
+        statusEl.textContent = 'Сравниваю с эталонным ответом…';
+        await compareAnswer(data.text);
+      }
+      statusEl.textContent = 'Готово';
+      btn.textContent = '🎤 Ответ записан';   // кнопка остаётся неактивной до следующего задания
+      nextBtn.hidden = false;
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'Ошибка: ' + e.message;
+      btn.disabled = false;
+    }
+  };
+
+  recorder.start();
+  out.hidden = ref.hidden = cmp.hidden = true;
+  btn.classList.add('alt');
+  btn.textContent = '⏹ Остановить запись';
+  statusEl.textContent = 'Идёт запись…';
+});
+
+async function compareAnswer(text) {
+  try {
+    var res = await fetch(API + '/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question_id: current().id, text: text })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    refText.textContent = d.reference;
+    ref.hidden = false;
+
+    var pct = function (x) { return Math.round(x * 100) + '%'; };
+    var names = { entailment: 'Соответствует эталону', contradiction: 'Противоречит эталону', neutral: 'Нейтрально' };
+    var rows = Object.keys(d.probs).map(function (k) {
+      return '<div>' + (names[k] || k) + ': <b>' + pct(d.probs[k]) + '</b></div>';
+    }).join('');
+    cmp.innerHTML = '<b>Сравнение с эталоном (NLI)</b>' +
+      '<div class="' + (d.good ? 'good' : 'low') + '" style="margin:6px 0">' +
+      (d.good ? 'Ответ подходит' : 'Ответ не совпадает с эталоном') +
+      ' (порог ' + pct(d.threshold) + ')</div>' + rows;
+    cmp.hidden = false;
+  } catch (e) {
+    console.error(e);
+    cmp.textContent = 'Не удалось сравнить с эталоном: ' + e.message;
+    cmp.hidden = false;
+  }
+}
+
+loadQuestions();
+</script>
+</body>
+</html>

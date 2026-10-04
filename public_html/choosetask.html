@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Выбор заданий</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><a href="index.html">🏠 На главную</a><span class="sp"></span><a href="varchoice.html">← Назад</a></header>
+<main class="stage"><div class="card">
+<h3>Выберите блок заданий</h3>
+<p class="sub" id="var"></p>
+<a class="btn" id="t12" href="task12.html">Задания 1–2</a>
+<a class="btn alt" id="t3" href="task3.html">Задание 3</a>
+</div></main>
+<script>
+var v=new URLSearchParams(location.search).get('v');
+if(v){
+  document.getElementById('var').textContent='Вариант '+v;
+  document.getElementById('t12').href='task12.html?v='+v;
+  document.getElementById('t3').href='task3.html?v='+v;
+}
+</script>
+</body></html>
