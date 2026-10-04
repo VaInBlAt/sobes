@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Трен-Собес — подготовка к итоговому собеседованию</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="landing.css">
+<script>document.documentElement.className+=' js'</script>
+</head>
+<body class="lp">
+
+<header class="lp-hero">
+  <h1 class="lp-title">Трен-Собес</h1>
+  <p class="lp-tag">Тренажёр итогового собеседования по русскому языку на базе ИИ</p>
+  <div class="lp-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="lp-scroll" aria-hidden="true">Листайте вниз ↓</div>
+</header>
+
+<main class="lp-wrap">
+  <section class="lp-block accent rv">
+    <h2>Что такое итоговое собеседование</h2>
+    <p>Это обязательный экзамен для девятиклассников: без «зачёта» к ГИА не допустят. Его сдают во вторую среду февраля. Ребятам предстоит выразительно прочитать текст, ответить на вопросы по нему и описать изображение.</p>
+  </section>
+
+  <section class="lp-block warm rv from-r">
+    <h2>Тема проекта</h2>
+    <p>Инновации в сфере образования.</p>
+  </section>
+
+  <section class="lp-block accent rv">
+    <h2>Наша цель</h2>
+    <p>Изменить подход к подготовке к итоговому собеседованию: создать ИИ-модель, которая умеет анализировать аудиозаписи учеников.</p>
+  </section>
+
+  <section class="lp-block rv from-r">
+    <h2>Наши задачи</h2>
+    <ul class="lp-tasks">
+      <li>Улучшить качество подготовки учеников к итоговому собеседованию</li>
+      <li>Избавить учителей от рутинной проверки аудиозаписей</li>
+      <li>Создать платформу, где учителя и ученики вместе готовятся к экзамену</li>
+      <li>По мере роста проекта внедрить модель в проверку реальных записей с экзамена</li>
+    </ul>
+  </section>
+</main>
+
+<div class="lp-cta rv">
+  <a class="btn" href="role.html">ПРОТОТИП ПЛАТФОРМЫ</a>
+</div>
+
+<script>
+(function(){
+  var els=document.querySelectorAll('.rv');
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target)}});
+  },{threshold:.15});
+  els.forEach(function(e){io.observe(e)});
+})();
+</script>
+</body>
+</html>
