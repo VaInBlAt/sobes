@@ -25,6 +25,8 @@
   .btn:disabled,.btn:disabled:hover,.btn:disabled:focus-visible{background:var(--bg);color:var(--muted);border:1px solid var(--line);cursor:not-allowed;transform:none;filter:none}
   @media(prefers-reduced-motion:reduce){.swap,.swap.enter{transition:none}}
   .progress{color:var(--muted);font-size:.9rem;margin:0 0 10px}
+  /* Ударная гласная: сам комбинирующий знак убираем, красим букву. */
+  .stress{color:#34b88a;font-weight:inherit}
 </style>
 </head>
 <body>
@@ -67,7 +69,30 @@ var fold = document.getElementById('fold');
 var toggle = document.getElementById('toggle');
 var toggleTxt = document.getElementById('toggleTxt');
 var qfold = document.getElementById('qfold');
+var passageEl = document.getElementById('passage');
+var questionEl = document.getElementById('question');
 var recorder, chunks = [];
+
+// Номер варианта прилетает из choosetask.html (?v=N). По умолчанию — 1.
+var variantId = new URLSearchParams(location.search).get('v') || '1';
+
+// Текст задания 1 фиксирован для варианта. Показываем его построчно (абзацы).
+passageEl.style.whiteSpace = 'pre-wrap';
+questionEl.style.whiteSpace = 'pre-wrap';
+
+// --- Отрисовка ударений ---
+// В CSV ударение задано комбинирующим акутом U+0301: "Влади\u0301мире".
+// Он даёт визуальный разрыв. Убираем его, а саму гласную красим красным.
+function escHtml(s){
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function markStress(s){
+  return escHtml(s).replace(/([а-яёА-ЯЁ])\u0301/g, '<span class="stress">$1</span>');
+}
 
 function setFolded(folded) {
   fold.classList.toggle('closed', folded);
@@ -80,7 +105,8 @@ toggle.addEventListener('click', function () {
   setFolded(!fold.classList.contains('closed'));
 });
 
-var questions = [];   // приходят с сервера (/questions)
+var passage = '';     // текст задания 1 (не меняется при переходе между вопросами)
+var questions = [];   // список вопросов задания 2 из /questions?v=N
 var idx = 0;          // текущий вопрос; после последнего — снова первый
 
 function current() { return questions[idx]; }
@@ -88,8 +114,8 @@ function current() { return questions[idx]; }
 function render() {
   var q = current();
   document.getElementById('progress').textContent = 'Вопрос ' + (idx + 1) + ' из ' + questions.length;
-  document.getElementById('passage').textContent = q.passage;
-  document.getElementById('question').textContent = q.question;
+  passageEl.innerHTML = markStress(passage);              // текст задания 1 — всегда целиком
+  questionEl.innerHTML = markStress(q.question);          // меняется только вопрос
   setFolded(false);   // новый вопрос: виден текст, вопрос скрыт
   out.hidden = ref.hidden = cmp.hidden = nextBtn.hidden = true;
   btn.hidden = false;
@@ -101,8 +127,11 @@ function render() {
 
 async function loadQuestions() {
   try {
-    var res = await fetch(API + '/questions');
-    questions = await res.json();
+    var res = await fetch(API + '/questions?v=' + encodeURIComponent(variantId));
+    var data = await res.json();
+    if (data.error) throw new Error(data.error);
+    passage = data.passage || '';
+    questions = data.questions || [];
     if (!questions.length) throw new Error('список вопросов пуст');
     render();
   } catch (e) {
@@ -172,7 +201,7 @@ btn.addEventListener('click', async function () {
       if (data.error) throw new Error(data.error);
 
       // текст ответа показываем сразу после расшифровки
-      outText.textContent = data.text || '(речь не распознана)';
+      outText.innerHTML = markStress(data.text || '(речь не распознана)');
       out.hidden = false;
 
       if (data.text) {
@@ -206,7 +235,7 @@ async function compareAnswer(text) {
     var d = await res.json();
     if (d.error) throw new Error(d.error);
 
-    refText.textContent = d.reference;
+    refText.innerHTML = markStress(d.reference);   // эталон тоже с ударениями
     ref.hidden = false;
 
     var pct = function (x) { return Math.round(x * 100) + '%'; };

@@ -25,6 +25,7 @@ h1,h2,h3,h4,h5{font-family:Georgia,"Times New Roman",serif;line-height:1.25;marg
 table{width:100%;border-collapse:collapse;margin-top:12px;text-align:left}
 th,td{padding:12px;border-bottom:1px solid var(--line)}
 th{color:var(--muted);font-weight:600;font-size:.92rem}
+.stress{color:#d33;font-weight:inherit}
 .good{color:var(--ok);font-weight:700}.mid{color:var(--warm);font-weight:700}.low{color:var(--bad);font-weight:700}
 .note{margin-top:20px;font-size:.85rem;color:var(--muted)}
 .passage{background:var(--bg);border-left:4px solid var(--accent);border-radius:10px;padding:18px 20px;white-space:pre-line;font-family:Georgia,serif;font-size:1.05rem}
