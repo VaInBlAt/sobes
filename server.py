@@ -5,16 +5,13 @@ import pandas as pd
 from flask import Flask, jsonify, redirect, request
 
 from micro import transcribe  # готовая функция распознавания
-from nli import compare_texts_nli_full, is_good_answer_nli, model as nli_model  # готовая NLI-модель
+from giga_eval import evaluate_student_answer  # оценка через GigaChat
 
 # Раздаём html/css из этой же папки, чтобы страница и API были на одном адресе
 app = Flask(__name__, static_folder=".", static_url_path="")
 
 CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "sobesedovanie_30_variantov.csv")
-
-# Порог для вердикта «ответ подходит» (по вероятности entailment)
-NLI_THRESHOLD = 0.5
 
 
 def _clean(v):
@@ -131,6 +128,7 @@ def transcribe_route():
 
 @app.route("/compare", methods=["POST"])
 def compare_route():
+    """Оценивает ответ ученика через GigaChat по критериям ФИПИ (задание 2)."""
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
     try:
@@ -142,19 +140,22 @@ def compare_route():
     if entry is None:
         return jsonify(error="Неизвестный вопрос"), 404
 
-    v, _q_idx = entry
+    v, q_idx = entry
+    question_text = v["questions"][q_idx]
+    passage = v["passage"]
     reference = v["reference"]
+
     if not text:
         return jsonify(error="Пустой ответ ученика"), 400
 
     try:
-        proba = compare_texts_nli_full(reference, text)  # [entailment, contradiction, neutral]
-        labels = [nli_model.config.id2label[i].lower() for i in range(len(proba))]
-        probs = {labels[i]: float(proba[i]) for i in range(len(proba))}
-        entail = float(proba[0])
-        good = bool(is_good_answer_nli({"compare_nli": entail}, NLI_THRESHOLD))
-        return jsonify(reference=reference, probs=probs, entailment=entail,
-                       good=good, threshold=NLI_THRESHOLD)
+        score = evaluate_student_answer(text, question_text, passage)
+        return jsonify(
+            reference=reference,
+            question=question_text,
+            score=score,
+            good=bool(score == 1),
+        )
     except Exception as e:
         return jsonify(error=str(e)), 500
 
