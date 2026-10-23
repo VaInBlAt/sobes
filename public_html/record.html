@@ -82,7 +82,7 @@ questionEl.style.whiteSpace = 'pre-wrap';
 
 // --- Отрисовка ударений ---
 // В CSV ударение задано комбинирующим акутом U+0301: "Влади\u0301мире".
-// Он даёт визуальный разрыв. Убираем его, а саму гласную красим красным.
+// Он даёт визуальный разрыв. Убираем его, а саму гласную красим зелёным.
 function escHtml(s){
   return String(s)
     .replace(/&/g, '&amp;')
@@ -205,7 +205,7 @@ btn.addEventListener('click', async function () {
       out.hidden = false;
 
       if (data.text) {
-        statusEl.textContent = 'Сравниваю с эталонным ответом…';
+        statusEl.textContent = 'Оцениваю ответ (GigaChat)…';
         await compareAnswer(data.text);
       }
       statusEl.textContent = 'Готово';
@@ -235,22 +235,23 @@ async function compareAnswer(text) {
     var d = await res.json();
     if (d.error) throw new Error(d.error);
 
-    refText.innerHTML = markStress(d.reference);   // эталон тоже с ударениями
-    ref.hidden = false;
+    // Эталон в CSV пока — заглушка («эталонный ответ»).
+    // Показываем его только если это осмысленный текст.
+    if (d.reference && d.reference.trim() && d.reference !== 'эталонный ответ') {
+      refText.innerHTML = markStress(d.reference);
+      ref.hidden = false;
+    } else {
+      ref.hidden = true;
+    }
 
-    var pct = function (x) { return Math.round(x * 100) + '%'; };
-    var names = { entailment: 'Соответствует эталону', contradiction: 'Противоречит эталону', neutral: 'Нейтрально' };
-    var rows = Object.keys(d.probs).map(function (k) {
-      return '<div>' + (names[k] || k) + ': <b>' + pct(d.probs[k]) + '</b></div>';
-    }).join('');
-    cmp.innerHTML = '<b>Сравнение с эталоном (NLI)</b>' +
+    cmp.innerHTML = '<b>Оценка ответа (GigaChat)</b>' +
       '<div class="' + (d.good ? 'good' : 'low') + '" style="margin:6px 0">' +
-      (d.good ? 'Ответ подходит' : 'Ответ не совпадает с эталоном') +
-      ' (порог ' + pct(d.threshold) + ')</div>' + rows;
+      (d.good ? 'Ответ зачтён: 1 балл' : 'Ответ не зачтён: 0 баллов') +
+      '</div>';
     cmp.hidden = false;
   } catch (e) {
     console.error(e);
-    cmp.textContent = 'Не удалось сравнить с эталоном: ' + e.message;
+    cmp.textContent = 'Не удалось оценить ответ: ' + e.message;
     cmp.hidden = false;
   }
 }
