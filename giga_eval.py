@@ -18,11 +18,11 @@ load_dotenv()
 GIGACHAT_BASE_URL = os.getenv("GIGACHAT_BASE_URL", "https://api.giga.chat/v1")
 GIGACHAT_CREDENTIALS = os.getenv(
     "GIGACHAT_CREDENTIALS",
-    "MDFhMTU1YmQtZTRmMC03MDU3LWJhMjUtZjQ2Y2NhMmIyZTViOjVkZjdmYjdiLWM2MDktNDU0YS1iY2U0LWI0YzY3ZmRmYjIwYg==",
+    "",
 )
 GIGACHAT_CA_BUNDLE = os.getenv(
     "GIGACHAT_CA_BUNDLE",
-    r"C:\Users\Acer\Desktop\sobes\Russian_Trusted_Root_CA.cer",
+    r"C:\Users\User\Desktop\PaketSPaketami\sobes\Russian_Trusted_Root_CA.cer",
 )
 GIGACHAT_MODEL = os.getenv("GIGACHAT_MODEL", "GigaChat-2")
 
