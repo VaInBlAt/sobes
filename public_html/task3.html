@@ -3,21 +3,274 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Задание 3</title>
+<title>Задание 3. Монологическое высказывание</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  .photo-wrap{margin:16px 0;text-align:center}
+  .photo-wrap img{max-width:100%;border-radius:12px;box-shadow:0 8px 26px rgba(15,40,45,.18)}
+  .photo-wrap .empty{color:var(--muted);font-size:.95rem}
+  .t3-questions{list-style:none;padding:0;margin:12px 0 0}
+  .t3-questions li{position:relative;padding:10px 14px 10px 40px;background:var(--bg);
+                   border-radius:10px;margin-bottom:8px;line-height:1.45}
+  .t3-questions li::before{content:"?";position:absolute;left:14px;top:10px;
+                           font-weight:700;color:var(--accent)}
+  .t3-questions li.t3-q-intro{padding-left:14px;background:transparent;font-weight:600}
+  .t3-questions li.t3-q-intro::before{content:""}
+  .blk{margin-top:16px;text-align:left}
+  .blk .lbl{display:block;font:600 .85rem/1.4 "Segoe UI",system-ui,sans-serif;
+            color:var(--muted);margin-bottom:4px}
+  .blk.user{border-left-color:var(--ok)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;text-align:left}
+  .stat{flex:1 1 130px;min-width:130px;padding:12px 14px;background:var(--bg);border-radius:10px}
+  .stat b{display:block;font-size:22px;line-height:1.1;color:var(--accent)}
+  .stat span{display:block;font-size:.85rem;color:var(--muted);margin-top:4px}
+  .stat b.good{color:var(--ok)}
+  .stat b.low{color:#c65a3b}
+  .stat b.muted{color:var(--muted)}
+  .stress{color:#34b88a;font-weight:inherit}
+  .btn:disabled,.btn:disabled:hover,.btn:disabled:focus-visible{
+    background:var(--bg);color:var(--muted);border:1px solid var(--line);
+    cursor:not-allowed;transform:none;filter:none;
+  }
+  .progress{color:var(--muted);font-size:.9rem;margin:0 0 10px}
+</style>
 </head>
 <body>
-<header class="topbar"><a href="index.html">🏠 На главную</a><span class="sp"></span><a href="choosetask.html">← Назад</a></header>
+<header class="topbar">
+  <a href="index.html">🏠 На главную</a>
+  <span class="sp"></span>
+  <a href="choosetask.html" id="back">← Назад</a>
+</header>
 <main class="stage"><div class="card wide">
-<h4>Задание 3 (заглушка)</h4>
-<p>Здесь будет формулировка задания 3 и дополнительные материалы. Это демонстрационная заглушка.</p>
-<img class="photo" src="https://img.magnific.com/premium-photo/group-diversity-people-together-set-studio-isolated_53876-38018.jpg?semt=ais_hybrid" alt="Фото-заглушка">
-<h5>Вопросы/задания (заглушки)</h5>
-<div class="q">Задание 3: Опишите фотографию, опираясь на план (3–4 предложения). Раскройте тему и выразите своё отношение.</div>
-<div class="q">Подсказка: начните с общей характеристики, затем выделите детали, завершите выводом или личным впечатлением.</div>
-<div class="hint"><b>Блок текста 1 (заглушка)</b>Подсказка 1</div>
-<div class="hint"><b>Блок текста 2 (заглушка)</b>Подсказка 2</div>
-<div class="hint"><b>Блок текста 3 (заглушка)</b>Подсказка 3</div>
-<div class="rec"><a class="mic" href="result.html" aria-label="Завершить запись и показать результат"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></a><span>Нажмите, чтобы завершить и увидеть результат</span></div>
+
+<h3>Задание 3. Монологическое высказывание</h3>
+<p class="progress" id="progress">Загружаю задание…</p>
+
+<div class="photo-wrap" id="photoWrap"></div>
+
+<p class="lbl" style="text-align:left;margin-top:6px">Вопросы-опоры:</p>
+<ul class="t3-questions" id="questions"></ul>
+
+<p class="sub" id="status" style="margin-top:18px">
+  Нажмите «Начать запись» и говорите не менее 3 минут (не менее 10 грамматических основ).
+</p>
+<button class="btn" id="rec" disabled>🎤 Начать запись</button>
+
+<div class="passage blk user" id="out" hidden>
+  <span class="lbl">Ваш ответ</span>
+  <span id="outText"></span>
+</div>
+
+<div class="stats" id="stats" hidden>
+  <div class="stat"><b id="stems">0</b><span>грамматических основ</span></div>
+  <div class="stat"><b id="facts">—</b><span>факты по фото (AI)</span></div>
+  <div class="stat"><b id="logic">—</b><span>логика (AI)</span></div>
+  <div class="stat"><b id="m1">—</b><span>М1 (из 2)</span></div>
+  <div class="stat"><b id="m2">—</b><span>М2 (из 1)</span></div>
+  <div class="stat"><b id="total">—</b><span>Итого (из 3)</span></div>
+</div>
+
+<div class="hint" id="hint" hidden style="text-align:left"></div>
+
 </div></main>
-</body></html>
+
+<script>
+// Адрес сервера Flask. Если страница открыта через Flask (порт 5000),
+// используем тот же адрес, иначе обращаемся к локальному серверу напрямую.
+var API = "";
+
+var variantId = new URLSearchParams(location.search).get('v') || '1';
+document.getElementById('back').href = 'choosetask.html?v=' + encodeURIComponent(variantId);
+
+var btn       = document.getElementById('rec');
+var statusEl  = document.getElementById('status');
+var out       = document.getElementById('out');
+var outText   = document.getElementById('outText');
+var stats     = document.getElementById('stats');
+var stemsEl   = document.getElementById('stems');
+var factsEl   = document.getElementById('facts');
+var logicEl   = document.getElementById('logic');
+var m1El      = document.getElementById('m1');
+var m2El      = document.getElementById('m2');
+var totalEl   = document.getElementById('total');
+var hint      = document.getElementById('hint');
+var recorder, chunks = [];
+
+function escHtml(s){
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// Комбинирующий акут U+0301 → подсветка гласной.
+function markStress(s){
+  return escHtml(s).replace(/([а-яёА-ЯЁ])\u0301/g, '<span class="stress">$1</span>');
+}
+
+async function loadTask() {
+  try {
+    var res = await fetch(API + '/task3?v=' + encodeURIComponent(variantId));
+    var data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('progress').textContent =
+      data.name || ('Вариант ' + variantId);
+
+    var pw = document.getElementById('photoWrap');
+    if (data.photo_url) {
+      pw.innerHTML = '<img src="' + escHtml(data.photo_url) + '" alt="Фотография к заданию 3">';
+    } else {
+      pw.innerHTML = '<p class="empty">Фотография для этого варианта пока не загружена.</p>';
+    }
+
+    var ul = document.getElementById('questions');
+    ul.innerHTML = data.questions.map(function (q, i) {
+      var intro = (i === 0 && /вопрос/i.test(q));
+      return '<li' + (intro ? ' class="t3-q-intro"' : '') + '>' + markStress(q) + '</li>';
+    }).join('');
+
+    btn.disabled = false;
+    statusEl.textContent = 'Нажмите кнопку и говорите. Рекомендуется не менее 10 грамматических основ.';
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Не удалось загрузить задание: ' + e.message +
+      '. Откройте страницу через http://127.0.0.1:5000/task3.html?v=' + variantId;
+  }
+}
+
+btn.addEventListener('click', async function () {
+  // второй клик — остановить запись
+  if (recorder && recorder.state === 'recording') {
+    recorder.stop();
+    return;
+  }
+
+  var stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    statusEl.textContent = 'Нет доступа к микрофону';
+    return;
+  }
+
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+
+  recorder.onstop = async function () {
+    stream.getTracks().forEach(function (t) { t.stop(); });
+    btn.disabled = true;
+    btn.classList.remove('alt');
+    btn.textContent = '🎤 Начать запись';
+    statusEl.textContent = 'Распознаю… первый раз может занять до минуты';
+
+    var form = new FormData();
+    form.append('audio', new Blob(chunks, { type: recorder.mimeType }), 'record.webm');
+
+    try {
+      var res = await fetch(API + '/transcribe', { method: 'POST', body: form });
+      var raw = await res.text();
+      var data;
+      try {
+        data = JSON.parse(raw);
+      } catch (e) {
+        throw new Error('сервер вернул не JSON (HTTP ' + res.status +
+                        '). Откройте через http://127.0.0.1:5000/task3.html?v=' + variantId);
+      }
+      if (data.error) throw new Error(data.error);
+
+      outText.innerHTML = markStress(data.text || '(речь не распознана)');
+      out.hidden = false;
+
+      if (!data.text) {
+        statusEl.textContent = 'Речь не распознана. Попробуйте записать ответ заново.';
+        btn.disabled = false;
+        return;
+      }
+
+      statusEl.textContent = 'Оцениваю ответ…';
+      await evaluate(data.text);
+      statusEl.textContent = 'Готово. Можно записать ответ заново.';
+      btn.disabled = false;
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'Ошибка: ' + e.message;
+      btn.disabled = false;
+    }
+  };
+
+  recorder.start();
+  out.hidden = stats.hidden = hint.hidden = true;
+  btn.classList.add('alt');
+  btn.textContent = '⏹ Остановить запись';
+  statusEl.textContent = 'Идёт запись…';
+});
+
+async function evaluate(text) {
+  var res = await fetch(API + '/compare3', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ variant_id: parseInt(variantId, 10), text: text })
+  });
+  var d = await res.json();
+  if (d.error) throw new Error(d.error);
+
+  // Количество основ.
+  stemsEl.textContent = d.stems;
+  stemsEl.className = d.stems >= 10 ? 'good' : (d.stems < 5 ? 'low' : '');
+
+  // Вердикт AI по фактической точности.
+  factsEl.textContent = d.facts_ok ? 'да' : 'нет';
+  factsEl.className = d.facts_ok ? 'good' : 'low';
+
+  // Вердикт AI по логике — то, что модель на самом деле считает.
+  logicEl.textContent = d.logic_ok ? 'да' : 'нет';
+  logicEl.className = d.logic_ok ? 'good' : 'low';
+
+  // Баллы.
+  m1El.textContent = d.m1 + ' / 2';
+  m1El.className = d.m1 === 2 ? 'good' : (d.m1 === 0 ? 'low' : '');
+
+  // М2: показываем причину, если 0.
+  if (d.m2 === 1) {
+    m2El.textContent = '1 / 1';
+    m2El.className = 'good';
+  } else if (!d.logic_ok) {
+    m2El.textContent = '0 / 1';
+    m2El.className = 'low';
+  } else {
+    // logic_ok = true, но m1 = 0 → по ФИПИ M2 не оценивается
+    m2El.innerHTML = '0 / 1<sup style="color:var(--muted);font-size:.7em">*</sup>';
+    m2El.className = 'muted';
+  }
+
+  totalEl.textContent = d.total + ' / 3';
+  totalEl.className = d.total >= 2 ? 'good' : 'low';
+  stats.hidden = false;
+
+  var html = '<b>Как читать результат</b>' +
+    '<div style="margin-top:6px">М1 — 2 балла при ≥10 грамматических основах и отсутствии ' +
+    'фактических ошибок по фото, 1 балл при 5–9, иначе 0.</div>' +
+    '<div>М2 — 1 балл, если логических ошибок нет (есть вступление, основная часть, ' +
+    'вывод; части связаны по смыслу).</div>';
+
+  if (d.facts_ok === false && d.note) {
+    html += '<div style="margin-top:8px;color:#c65a3b"><b>Противоречие с фото:</b> ' +
+            escHtml(d.note) + '</div>';
+  }
+
+  if (d.logic_ok === true && d.m1 === 0) {
+    html += '<div style="margin-top:8px;color:var(--muted)">' +
+            'М2 = 0*, потому что по правилам ФИПИ он не оценивается при М1 = 0. ' +
+            'Сама логика в порядке — AI подтвердил.</div>';
+  }
+
+  hint.innerHTML = html;
+  hint.hidden = false;
+}
+
+loadTask();
+</script>
+</body>
+</html>

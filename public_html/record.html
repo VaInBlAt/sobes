@@ -54,7 +54,7 @@
 <script>
 // Адрес сервера Flask. Если страница открыта через Flask (порт 5000),
 // используем тот же адрес, иначе обращаемся к локальному серверу напрямую.
-var API = (location.port === '5000') ? '' : 'http://127.0.0.1:5000';
+var API = "";
 
 var btn = document.getElementById('rec');
 // ВАЖНО: statusEl, а не status — window.status это встроенное свойство браузера

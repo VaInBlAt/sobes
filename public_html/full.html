@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Полный вариант собеседования</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* --- Исправление ленты --- */
+  .stage {
+    display: block !important; /* Убираем flex у stage для этой страницы */
+    padding: 20px 10px;
+  }
+  .full-feed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+  }
+  .full-feed .card {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 !important; /* Убираем возможные отступы */
+  }
+
+  /* --- Остальные стили --- */
+  .stress{color:#34b88a;font-weight:inherit}
+  .blk{margin-top:14px;text-align:left}
+  .blk .lbl{display:block;font:600 .85rem/1.4 "Segoe UI",system-ui,sans-serif;color:var(--muted);margin-bottom:4px}
+  .blk.user{border-left-color:var(--ok)}
+  .blk.ref{border-left-color:var(--mid)}
+  .blk.neutral{border-left-color:var(--line)}
+  .progress{color:var(--muted);font-size:.9rem;margin:0 0 10px}
+  .btn:disabled,.btn:disabled:hover,.btn:disabled:focus-visible{
+    background:var(--bg);color:var(--muted);border:1px solid var(--line);
+    cursor:not-allowed;transform:none;filter:none;
+  }
+  .q-item{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+  .q-item:first-child{border-top:none;padding-top:0;margin-top:0}
+  .q-item h4{margin:0 0 8px;font-size:1rem}
+  .q-item .q-text{background:var(--bg);padding:10px 14px;border-radius:10px;
+                  margin-bottom:12px;line-height:1.45;white-space:pre-wrap}
+  .score-badge{display:inline-block;padding:4px 12px;border-radius:999px;
+               font-weight:600;font-size:.9rem}
+  .score-badge.good{background:rgba(52,184,138,.15);color:#1a8a63}
+  .score-badge.low{background:rgba(198,90,59,.15);color:#a83c1f}
+  .photo-wrap{margin:16px 0;text-align:center}
+  .photo-wrap img{max-width:100%;border-radius:12px;box-shadow:0 8px 26px rgba(15,40,45,.18)}
+  .photo-wrap .empty{color:var(--muted);font-size:.95rem}
+  .t3-questions{list-style:none;padding:0;margin:12px 0 0}
+  .t3-questions li{position:relative;padding:10px 14px 10px 40px;background:var(--bg);
+                   border-radius:10px;margin-bottom:8px;line-height:1.45;white-space:pre-wrap}
+  .t3-questions li::before{content:"?";position:absolute;left:14px;top:10px;
+                           font-weight:700;color:var(--accent)}
+  .t3-questions li.t3-q-intro{padding-left:14px;background:transparent;font-weight:600}
+  .t3-questions li.t3-q-intro::before{content:""}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;text-align:left}
+  .stat{flex:1 1 130px;min-width:130px;padding:12px 14px;background:var(--bg);border-radius:10px}
+  .stat b{display:block;font-size:22px;line-height:1.1;color:var(--accent)}
+  .stat span{display:block;font-size:.85rem;color:var(--muted);margin-top:4px}
+  .stat b.good{color:var(--ok)}
+  .stat b.low{color:#c65a3b}
+  .stat b.muted{color:var(--muted)}
+  .res-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.95rem}
+  .res-table td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+  .res-table td:last-child{text-align:right;font-weight:600;white-space:nowrap;width:1%}
+  .res-table tr.sect td{background:var(--bg);font-weight:700;padding:8px;
+                        border-bottom:none;border-radius:6px}
+  .res-table tr.sect td:last-child{text-align:left}
+  .res-table tr.dev td:last-child{color:var(--muted);font-weight:400;font-style:italic}
+  .res-table tr.total td{border-top:2px solid var(--line);border-bottom:none;
+                         padding-top:14px;font-size:1.05rem;font-weight:700}
+  .res-table tr.total td:first-child{color:inherit}
+  .final-note{margin-top:14px;padding:12px 14px;background:var(--bg);
+              border-radius:10px;font-size:.9rem;color:var(--muted);line-height:1.5}
+  .passage{white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a href="index.html">🏠 На главную</a>
+  <span class="sp"></span>
+  <a href="choosetask.html" id="back">← Назад</a>
+</header>
+
+<main class="stage" id="stage">
+  <p class="sub" id="loading" style="text-align:center; margin-top:20px;">Загружаю задание…</p>
+</main>
+
+<script>
+var API = "";
+var variantId = new URLSearchParams(location.search).get('v') || '1';
+document.getElementById('back').href = 'choosetask.html?v=' + encodeURIComponent(variantId);
+
+var stage = document.getElementById('stage');
+var loadingEl = document.getElementById('loading');
+
+// Создаем вертикальную ленту
+var feed = document.createElement('div');
+feed.className = 'full-feed';
+feed.style.display = 'none'; // Скрываем до загрузки
+
+var taskData = null;
+var task2Scores = [];
+var task3Result = null;
+var resultsShown = false;
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function markStress(s){
+  return escHtml(s).replace(/([а-яёА-ЯЁ])\u0301/g, '<span class="stress">$1</span>');
+}
+function makeCard(html){
+  var card = document.createElement('div');
+  card.className = 'card wide';
+  card.innerHTML = html;
+  return card;
+}
+function appendCard(el){
+  feed.appendChild(el);
+  setTimeout(function(){ el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 80);
+}
+
+async function loadVariant(){
+  try {
+    var pair = await Promise.all([
+      fetch(API + '/questions?v=' + encodeURIComponent(variantId)).then(function(r){ return r.json(); }),
+      fetch(API + '/task3?v=' + encodeURIComponent(variantId)).then(function(r){ return r.json(); }),
+    ]);
+    var qData = pair[0], t3Data = pair[1];
+    if (qData.error) throw new Error(qData.error);
+    if (t3Data.error) throw new Error(t3Data.error);
+
+    taskData = {
+      passage: qData.passage || '',
+      name: qData.name || ('Вариант ' + variantId),
+      questions: qData.questions || [],
+      t3: t3Data,
+    };
+    task2Scores = new Array(taskData.questions.length).fill(0);
+
+    loadingEl.remove();
+    stage.appendChild(feed);
+    feed.style.display = 'flex';
+    
+    renderTask1Card();
+    renderTask2Card();
+  } catch (e) {
+    console.error(e);
+    loadingEl.textContent = 'Не удалось загрузить задание: ' + e.message +
+      '. Откройте через http://127.0.0.1:5000/full.html?v=' + variantId;
+  }
+}
+
+// ---------------- Задание 1 ----------------
+function renderTask1Card(){
+  var card = makeCard(
+    '<h3>Задание 1. Чтение вслух</h3>' +
+    '<p class="progress">Выразительно прочитайте вслух текст.</p>' +
+    '<div class="passage blk neutral">' +
+      '<span class="lbl">Текст задания</span>' +
+      '<div id="t1-text"></div>' +
+    '</div>' +
+    '<p class="sub" style="margin-top:14px">' +
+      'Автоматическая оценка чтения вслух в этой версии прототипа пока не реализована.' +
+    '</p>' +
+    '<button class="btn" type="button" disabled>🎤 Запись (в разработке)</button>'
+  );
+  card.querySelector('#t1-text').innerHTML = markStress(taskData.passage);
+  appendCard(card);
+}
+
+// ---------------- Задание 2 ----------------
+function renderTask2Card(){
+  var card = makeCard(
+    '<h3>Задание 2. Беседа по тексту</h3>' +
+    '<p class="progress" id="t2-progress">Вопрос 1 из ' + taskData.questions.length + '</p>' +
+    // Текст задания убран, чтобы не дублировать его из первого блока
+    '<div id="t2-questions"></div>'
+  );
+
+  var container = card.querySelector('#t2-questions');
+  var progressEl = card.querySelector('#t2-progress');
+  appendCard(card);
+
+  function addQuestion(idx){
+    if (idx >= taskData.questions.length) {
+      progressEl.textContent = 'Задание 2 завершено';
+      setTimeout(renderTask3Card, 500);
+      return;
+    }
+
+    progressEl.textContent = 'Вопрос ' + (idx + 1) + ' из ' + taskData.questions.length;
+
+    var q = taskData.questions[idx];
+    var wrapper = document.createElement('div');
+    wrapper.className = 'q-item';
+    wrapper.innerHTML =
+      '<h4>Вопрос ' + (idx + 1) + '</h4>' +
+      '<div class="q-text">' + markStress(q.question) + '</div>' +
+      '<p class="sub" id="q2-status-' + idx + '">Нажмите кнопку и говорите</p>' +
+      '<button class="btn" id="q2-rec-' + idx + '">🎤 Начать запись</button>' +
+      '<div id="q2-result-' + idx + '" hidden></div>';
+    container.appendChild(wrapper);
+    setTimeout(function(){ wrapper.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 80);
+
+    var recBtn = wrapper.querySelector('#q2-rec-' + idx);
+    var statusEl = wrapper.querySelector('#q2-status-' + idx);
+    var resultEl = wrapper.querySelector('#q2-result-' + idx);
+
+    function advance(){ setTimeout(function(){ addQuestion(idx + 1); }, 600); }
+    function fail(){ task2Scores[idx] = 0; advance(); }
+
+    attachRecorder(recBtn, statusEl,
+      async function(text){
+        if (!text || !text.trim()) {
+          task2Scores[idx] = 0;
+          statusEl.textContent = 'Речь не распознана';
+          resultEl.innerHTML = '<span class="score-badge low">0 / 1</span>' +
+            ' <span style="color:var(--muted);margin-left:8px">(речь не распознана)</span>';
+          resultEl.hidden = false;
+          advance();
+          return;
+        }
+
+        statusEl.textContent = 'Оцениваю ответ…';
+
+        try {
+          var res = await fetch(API + '/compare', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question_id: q.id, text: text })
+          });
+          var data = await res.json();
+          if (data.error) throw new Error(data.error);
+
+          task2Scores[idx] = data.score ? 1 : 0;
+
+          var badgeCls = data.good ? 'good' : 'low';
+          var badgeTxt = data.good ? '1 / 1' : '0 / 1';
+
+          var html = '<div class="passage blk user" style="margin-top:12px">' +
+            '<span class="lbl">Ваш ответ</span>' + markStress(text) + '</div>';
+          html += '<div style="margin-top:10px"><span class="score-badge ' +
+            badgeCls + '">' + badgeTxt + '</span></div>';
+
+          if (data.reference && data.reference.trim() && data.reference !== 'эталонный ответ') {
+            html += '<div class="passage blk ref" style="margin-top:10px">' +
+              '<span class="lbl">Эталонный ответ</span>' +
+              markStress(data.reference) + '</div>';
+          }
+
+          resultEl.innerHTML = html;
+          resultEl.hidden = false;
+          statusEl.textContent = 'Готово';
+          advance();
+        } catch (e) {
+          statusEl.textContent = 'Ошибка оценки: ' + e.message;
+          fail();
+        }
+      },
+      function (err) {
+        statusEl.textContent = 'Ошибка распознавания: ' + (err && err.message ? err.message : err);
+        fail();
+      }
+    );
+  }
+
+  addQuestion(0);
+}
+
+// ---------------- Задание 3 ----------------
+function renderTask3Card(){
+  var t3 = taskData.t3;
+  var card = makeCard(
+    '<h3>Задание 3. Монологическое высказывание</h3>' +
+    '<p class="progress">' + escHtml(t3.name || ('Вариант ' + variantId)) + '</p>' +
+    '<div class="photo-wrap" id="t3-photo"></div>' +
+    '<p class="lbl" style="text-align:left;margin-top:6px">Вопросы-опоры:</p>' +
+    '<ul class="t3-questions" id="t3-questions"></ul>' +
+    '<p class="sub" id="t3-status" style="margin-top:14px">' +
+      'Нажмите «Начать запись» и говорите не менее 3 минут (не менее 10 грамматических основ).' +
+    '</p>' +
+    '<button class="btn" id="t3-rec">🎤 Начать запись</button>' +
+    '<div id="t3-result" hidden></div>'
+  );
+  appendCard(card);
+  setTimeout(function(){ card.scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
+
+  var pw = card.querySelector('#t3-photo');
+  if (t3.photo_url) {
+    pw.innerHTML = '<img src="' + escHtml(t3.photo_url) + '" alt="Фотография к заданию 3">';
+  } else {
+    pw.innerHTML = '<p class="empty">Фотография для этого варианта не задана.</p>';
+  }
+
+  var ul = card.querySelector('#t3-questions');
+  ul.innerHTML = t3.questions.map(function(q, i){
+    var intro = (i === 0 && /вопрос/i.test(q));
+    return '<li' + (intro ? ' class="t3-q-intro"' : '') + '>' + markStress(q) + '</li>';
+  }).join('');
+
+  var recBtn = card.querySelector('#t3-rec');
+  var statusEl = card.querySelector('#t3-status');
+  var resultEl = card.querySelector('#t3-result');
+
+  function finish(res){
+    task3Result = res;
+    setTimeout(renderResultsCard, 800);
+  }
+
+  attachRecorder(recBtn, statusEl,
+    async function(text){
+      if (!text || !text.trim()) {
+        statusEl.textContent = 'Речь не распознана';
+        resultEl.innerHTML = '<div style="margin-top:12px"><span class="score-badge low">0 / 3</span></div>';
+        resultEl.hidden = false;
+        finish({ stems:0, facts_ok:false, logic_ok:false, m1:0, m2:0, note:'речь не распознана' });
+        return;
+      }
+
+      statusEl.textContent = 'Оцениваю ответ…';
+
+      try {
+        var res = await fetch(API + '/compare3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variant_id: parseInt(variantId, 10), text: text })
+        });
+        var data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        var html = '<div class="passage blk user" style="margin-top:14px">' +
+          '<span class="lbl">Ваш ответ</span>' + markStress(text) + '</div>';
+          
+        // Убрали плашки с "да/нет" и "AI", оставили только голые баллы и основы
+        html += '<div class="stats">' +
+          '<div class="stat"><b class="' + (data.stems >= 10 ? 'good' : (data.stems < 5 ? 'low' : '')) + '">' + data.stems + '</b><span>грамматических основ</span></div>' +
+          '<div class="stat"><b class="' + (data.m1 === 2 ? 'good' : (data.m1 === 0 ? 'low' : '')) + '">' + data.m1 + ' / 2</b><span>М1</span></div>' +
+          '<div class="stat"><b class="' + (data.m2 === 1 ? 'good' : 'low') + '">' + data.m2 + ' / 1</b><span>М2</span></div>' +
+        '</div>';
+
+        if (data.facts_ok === false && data.note) {
+          html += '<div style="margin-top:10px;color:#c65a3b"><b>Противоречие с фото:</b> ' +
+                  escHtml(data.note) + '</div>';
+        }
+        if (data.logic_ok === true && data.m1 === 0) {
+          html += '<div style="margin-top:8px;color:var(--muted)">' +
+            'М2 = 0, потому что по правилам ФИПИ он не оценивается при М1 = 0. ' +
+            'Логика как таковая в порядке — AI подтвердил.</div>';
+        }
+
+        resultEl.innerHTML = html;
+        resultEl.hidden = false;
+        statusEl.textContent = 'Готово';
+        finish(data);
+      } catch (e) {
+        statusEl.textContent = 'Ошибка оценки: ' + e.message;
+        finish({ stems:0, facts_ok:false, logic_ok:false, m1:0, m2:0, note:'ошибка оценки' });
+      }
+    },
+    function (err) {
+      statusEl.textContent = 'Ошибка распознавания: ' + (err && err.message ? err.message : err);
+      finish({ stems:0, facts_ok:false, logic_ok:false, m1:0, m2:0, note:'ошибка распознавания' });
+    }
+  );
+}
+
+// ---------------- Итоги ----------------
+function renderResultsCard(){
+  if (resultsShown) return;
+  resultsShown = true;
+
+  var dSum = 0;
+  for (var i = 0; i < task2Scores.length; i++) dSum += task2Scores[i] || 0;
+  var dMax = taskData.questions.length;
+
+  var m1 = task3Result ? (task3Result.m1 || 0) : 0;
+  var m2 = task3Result ? (task3Result.m2 || 0) : 0;
+
+  var total = dSum + m1 + m2;
+  var maxActual = dMax + 3;
+
+  function row(label, value){
+    return '<tr><td>' + label + '</td><td>' + value + '</td></tr>';
+  }
+  function devRow(label){
+    return '<tr class="dev"><td>' + label + '</td><td>— (в разработке)</td></tr>';
+  }
+  function sectRow(label){
+    return '<tr class="sect"><td colspan="2">' + label + '</td></tr>';
+  }
+
+  var html = '<h3>Итоги собеседования</h3>';
+  html += '<table class="res-table">';
+
+  html += sectRow('Задание 1. Чтение вслух');
+  html += devRow('Ч1. Интонация');
+  html += devRow('Ч2. Темп чтения');
+  html += devRow('Ч3. Искажения слов');
+
+  html += sectRow('Задание 2. Беседа по тексту');
+  for (var j = 0; j < taskData.questions.length; j++) {
+    html += row('Д' + (j + 1) + '. Вопрос ' + (j + 1), (task2Scores[j] || 0) + ' / 1');
+  }
+  html += row('<b>Итого за задание 2</b>', '<b>' + dSum + ' / ' + dMax + '</b>');
+
+  html += sectRow('Задание 3. Монолог');
+  html += row('М1. Коммуникативная задача', m1 + ' / 2');
+  html += row('М2. Логичность', m2 + ' / 1');
+  html += row('<b>Итого за задание 3</b>', '<b>' + (m1 + m2) + ' / 3</b>');
+
+  html += sectRow('Грамотность речи');
+  html += devRow('Р1. Орфоэпия');
+  html += devRow('Р2. Грамматика');
+  html += devRow('Р3. Речь');
+
+  html += '<tr class="total"><td>Всего по прототипу</td><td>' +
+          total + ' / ' + maxActual + '</td></tr>';
+  html += '</table>';
+
+  html += '<div class="final-note">' +
+    'В этой версии прототипа автоматически оцениваются только задания 2 и 3. ' +
+    'Критерии Ч1–Ч3 (чтение) и Р1–Р3 (грамотность) пока не реализованы. ' +
+    'По спецификации ФИПИ максимум за всё собеседование — 17, ' +
+    'проходной балл — 10.' +
+    '</div>';
+
+  var card = makeCard(html);
+  card.id = 'results-card';
+  appendCard(card);
+}
+
+// ---------------- Recorder ----------------
+function attachRecorder(buttonEl, statusEl, onSuccess, onError){
+  var recorder = null;
+  var chunks = [];
+
+  buttonEl.addEventListener('click', async function(){
+    if (recorder && recorder.state === 'recording') {
+      recorder.stop();
+      return;
+    }
+
+    var stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      statusEl.textContent = 'Нет доступа к микрофону';
+      if (onError) onError(e);
+      return;
+    }
+
+    chunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = function(e){ if (e.data.size) chunks.push(e.data); };
+
+    recorder.onstop = async function(){
+      stream.getTracks().forEach(function(t){ t.stop(); });
+
+      // Навсегда отключаем кнопку записи до перезагрузки страницы.
+      buttonEl.disabled = true;
+      buttonEl.classList.remove('alt');
+      buttonEl.textContent = '🎤 Ответ записан';
+      statusEl.textContent = 'Распознаю…';
+
+      var form = new FormData();
+      form.append('audio', new Blob(chunks, { type: recorder.mimeType }), 'record.webm');
+
+      try {
+        var res = await fetch(API + '/transcribe', { method: 'POST', body: form });
+        var raw = await res.text();
+        var data;
+        try { data = JSON.parse(raw); }
+        catch (e) { throw new Error('сервер вернул не JSON (HTTP ' + res.status + ')'); }
+        if (data.error) throw new Error(data.error);
+        await onSuccess(data.text || '');
+      } catch (e) {
+        statusEl.textContent = 'Ошибка распознавания: ' + e.message;
+        if (onError) onError(e);
+      }
+    };
+
+    recorder.start();
+    buttonEl.classList.add('alt');
+    buttonEl.textContent = '⏹ Остановить запись';
+    statusEl.textContent = 'Идёт запись…';
+  });
+}
+
+loadVariant();
+</script>
+</body>
+</html>
